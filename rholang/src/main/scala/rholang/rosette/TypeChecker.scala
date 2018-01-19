@@ -10,7 +10,7 @@ package coop.rchain.rho2rose
 
 // import coop.rchain.syntax.rholang._
 import coop.rchain.syntax.rholang.Absyn._
-import scalaz._
+import scalaz.{Bind => _, _}
 import scalaz.std.list._
 import scalaz.std.option._
 
@@ -138,17 +138,20 @@ object Equivalences{
     (p1,p2) match {
       case (_ : PNil, _) => structurallyNil(p2)
       case (_, _ : PNil) => structurallyNil(p1)
-      // case (val1: PValue, val2: PValue) => valueEquivalent(env1,val1.value_,env2,val2.value_)
-      // case () => {
-      //   nameEquivalent(nsubj1, nsubj2)
-      //   && structurallyNil()
-      // }
+      case (_: PValue, _: PValue) => ???
       case (drop1: PDrop, drop2: PDrop) =>
         nameEquivalent(env1, drop1.chan_, env2, drop2.chan_)
+      case (_: PInject, _: PInject) => ???
       case (lift1: PLift, lift2: PLift) => {
         nameEquivalent(env1, lift1.chan_, env2, lift2.chan_) &&
           allStructurallyEquivalent(env1, lift1.listproc_, env2, lift2.listproc_)
       }
+      case (_: PFoldL, _: PFoldL) => ???
+      case (_: PFoldR, _: PFoldR) => ???
+      case (input1: PInput, input2: PInput) => ???
+      case (_: PChoice, _: PChoice) => ???
+      case (_: PMatch, _: PMatch) => ???
+      case (_: PNew, _: PNew) => ???
       case (print1: PPrint, print2: PPrint) =>
         structurallyEquivalent(env1, print1.proc_, env2, print2.proc_)
       case (constr1: PConstr, constr2: PConstr) => {
@@ -163,10 +166,31 @@ object Equivalences{
               structurallyEquivalent(newenv1, contr1.proc_, newenv2, contr2.proc_)
         }
       }
-        
+      case (_: PPar, _: PPar) => ???
       case _ => false
     }
   }
+
+  def bindEquivalent(env1: DeBruijn, b1: Bind, env2: DeBruijn, b2: Bind): Option[(CPattern,CPattern)] = {
+    (b1, b2) match {
+      case (inpBind1: InputBind, inpBind2: InputBind) =>
+        if (nameEquivalent(env1, inpBind1.chan_, env2, inpBind2.chan_)) {
+          Some((inpBind1.cpattern_, inpBind2.cpattern_))
+        } else None
+      case (condInpBind1: CondInputBind, condInpBind2: CondInputBind) =>
+        val check =
+          nameEquivalent(env1, condInpBind1.chan_, env2, condInpBind2.chan_) &&
+          structurallyEquivalent(env1, condInpBind1.proc_, env2, condInpBind2.proc_)
+        if (check) {
+          Some((condInpBind1.cpattern_, condInpBind2.cpattern_))
+        } else None
+      case _ => None 
+    }
+  }
+
+  def syntacticSubstitution(proc: Proc, source: CPattern, target: CPattern): Proc = ???
+
+  def alphaEquivalent(p1: Proc, p2: Proc): Boolean = ???
 
   def structurallyEquivalent(p1: Proc, p2: Proc): Boolean =
     structurallyEquivalent(DeBruijn(), p1, DeBruijn(), p2)
