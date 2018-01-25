@@ -21,7 +21,8 @@ lazy val root = (project in file("."))
       "org.typelevel" %% "cats" % "0.9.0",
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       scalaTest % Test,
-      "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
+      "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+      "org.scorexfoundation" %% "scrypto" % "2.0.0"
     )
   ).dependsOn(macros)
 
