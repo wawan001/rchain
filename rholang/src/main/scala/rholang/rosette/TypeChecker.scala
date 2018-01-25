@@ -31,10 +31,7 @@ with Proc.Visitor[CheckerTypes.Ret, CheckerTypes.Arg]{
     override def visit( p: PNil, arg: Arg ): Ret = List()
     override def visit( p: PValue, arg: Arg ): Ret = List()
     override def visit( p: PDrop, arg: Arg ): Ret = List()
-    override def visit( p: PInject, arg: Arg ): Ret = List()
     override def visit( p: PLift, arg: Arg ): Ret = List()
-    override def visit( p: PFoldL, arg: Arg ): Ret = List()
-    override def visit( p: PFoldR, arg: Arg ): Ret = List()
     override def visit( p: PInput, arg: Arg ): Ret = List()
     override def visit( p: PChoice, arg: Arg ): Ret = List()
     override def visit( p: PMatch, arg: Arg ): Ret = List()
@@ -141,13 +138,10 @@ object Equivalences{
       case (_: PValue, _: PValue) => ???
       case (drop1: PDrop, drop2: PDrop) =>
         nameEquivalent(env1, drop1.chan_, env2, drop2.chan_)
-      case (_: PInject, _: PInject) => ???
       case (lift1: PLift, lift2: PLift) => {
         nameEquivalent(env1, lift1.chan_, env2, lift2.chan_) &&
           allStructurallyEquivalent(env1, lift1.listproc_, env2, lift2.listproc_)
       }
-      case (_: PFoldL, _: PFoldL) => ???
-      case (_: PFoldR, _: PFoldR) => ???
       case (input1: PInput, input2: PInput) => ???
       case (_: PChoice, _: PChoice) => ???
       case (_: PMatch, _: PMatch) => ???

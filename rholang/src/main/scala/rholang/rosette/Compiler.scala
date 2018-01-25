@@ -10,6 +10,7 @@
 package coop.rchain.rho2rose
 
 import coop.rchain.syntax.rholang._
+import coop.rchain.syntax.rholang.Absyn._
 
 import java.io._
 
