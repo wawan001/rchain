@@ -10,7 +10,7 @@ package coop.rchain.rho2rose
 
 // import coop.rchain.syntax.rholang._
 import coop.rchain.syntax.rholang.Absyn._
-import scalaz.{Bind => _, _}
+import scalaz.{Bind => _, Value => _, _}
 import scalaz.std.list._
 import scalaz.std.option._
 
@@ -135,7 +135,7 @@ object Equivalences{
     (p1,p2) match {
       case (_ : PNil, _) => structurallyNil(p2)
       case (_, _ : PNil) => structurallyNil(p1)
-      case (_: PValue, _: PValue) => ???
+      case (v1: PValue, v2: PValue) => valueEquivalent(env1,v1.value_,env2,v2.value_)
       case (drop1: PDrop, drop2: PDrop) =>
         nameEquivalent(env1, drop1.chan_, env2, drop2.chan_)
       case (lift1: PLift, lift2: PLift) => {
@@ -160,7 +160,7 @@ object Equivalences{
               structurallyEquivalent(newenv1, contr1.proc_, newenv2, contr2.proc_)
         }
       }
-      case (_: PPar, _: PPar) => ???
+      case (p1: PPar, p2: Proc) => ???
       case _ => false
     }
   }
@@ -193,7 +193,7 @@ object Equivalences{
     import scala.collection.JavaConverters._
     ps1.size() == ps2.size() &&
       (ps1.asScala.toList, ps2.asScala.toList).zipped.forall(
-        (proc1,proc2) => structurallyEquivalent(env1, proc2, env2, proc2)
+        (proc1,proc2) => structurallyEquivalent(env1, proc1, env2, proc2)
         )
   }
 
@@ -225,12 +225,14 @@ object Equivalences{
     }
   }
   
-  // def valueEquivalent(env1: DeBruijn, v1: Value, env2: DeBruijn, v2: Value): Boolean = {
-  //   (v1,v2) match {
-  //     case (_: VQuant, _: VQuant) => quantityEquivalent(v1.)
-  //     case _ => false
-  //   }
-
+  def valueEquivalent(env1: DeBruijn, v1: Value, env2: DeBruijn, v2: Value): Boolean =
+    (v1,v2) match {
+      case (q1: VQuant, q2: VQuant) => q1 == q2
+      case (c1: EChar, c2: EChar) => c1.char_ == c2.char_
+      case (t1: ETuple, t2: ETuple) =>
+        allStructurallyEquivalent(env1, t1.listproc_, env2, t2.listproc_)
+      case _ => false
+    }
 }
 
 class DeBruijn(val environment: Map[String,Int], val next: Int){
