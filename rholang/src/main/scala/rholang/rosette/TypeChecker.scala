@@ -160,7 +160,7 @@ object Equivalences{
               structurallyEquivalent(newenv1, contr1.proc_, newenv2, contr2.proc_)
         }
       }
-      case (p1: PPar, p2: Proc) => ???
+      case (p1: PPar, p2: PPar) => parEquiv(parLeaves(p1),parLeaves(p2))
       case _ => false
     }
   }
@@ -233,6 +233,43 @@ object Equivalences{
         allStructurallyEquivalent(env1, t1.listproc_, env2, t2.listproc_)
       case _ => false
     }
+  
+  def parLeaves(proc: Proc): List[Proc] = proc match {
+    case (_: PNil) => Nil
+    case (p: PValue) => List(p)
+    case (p: PDrop) => List(p)
+    case (p: PLift) => List(p)
+    case (p: PInput) => List(p)
+    case (p: PChoice) => List(p)
+    case (p: PMatch) => List(p)
+    case (p: PNew) => List(p)
+    case (p: PPrint) => List(p)
+    case (p: PConstr) => List(p)
+    case (p: PContr) => List(p)
+    case (p: PPar) => parLeaves(p.proc_1) ++ parLeaves(p.proc_2)
+  }
+
+  def parEquiv(procs1: List[Proc], procs2: List[Proc]): Boolean = procs1 match {
+    case Nil => procs2.forall(proc => structurallyNil(proc))
+    case head :: tail =>
+      procs2.partition(proc => structurallyEquivalent(head, proc)) match {
+        case (Nil, tl) => false
+        case (eqhd, eqtl) =>
+          eqhd.foldLeft((false, List[Proc](), eqhd.tail)) { (rejects, proc) =>
+                rejects match {
+                  case (false, r, l) =>
+                    if (parEquiv(r ++ l ++ eqtl, tail)) (true, r, l)
+                    else {
+                      l match {
+                        case Nil => (false, r ++ List(proc), Nil)
+                        case x :: xs1 => (false, r ++ List(proc), xs1)
+                      }
+                    }
+                  case (true, r, l) => (true, r, l)
+                }
+              }._1
+      }
+  }
 }
 
 class DeBruijn(val environment: Map[String,Int], val next: Int){
