@@ -31,8 +31,8 @@ lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .settings(bnfcSettings: _*)
 
-// Scalaz
-libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.0-M17"
+// Scalaz & Cats
+libraryDependencies ++= Seq("org.scalaz" %% "scalaz-core" % "7.3.0-M17", "org.typelevel" %% "cats-core" % "1.0.0-RC1")
 
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")

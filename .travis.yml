@@ -16,3 +16,19 @@ cache:
   directories:
     - "$HOME/.ivy2/cache"
     - "$HOME/.sbt"
+notifications:
+  email:
+    recipients:
+      - rchain-makers@pyrofex.net
+    on_success: never
+    on_failure: always
+addons:
+    apt:
+        sources:
+            - sourceline: 'deb https://dl.bintray.com/sbt/debian /'
+        packages:
+            - sbt
+            - jflex
+            - haskell-platform
+
+
