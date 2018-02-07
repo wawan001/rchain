@@ -11,6 +11,7 @@ lazy val commonOptions = Seq(
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
   "-Ywarn-value-discard",
+  "-Ypartial-unification",
   "-deprecation",
   "-encoding", "UTF-8",
   "-feature",
@@ -33,6 +34,7 @@ lazy val root = (project in file("."))
 
 // Scalaz
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.3.0-M17"
+libraryDependencies += "org.typelevel" %% "cats-core" % "1.0.1"
 
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
