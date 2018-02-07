@@ -3,6 +3,7 @@ package interpreter
 import Proc._
 import Alias._
 import cats.implicits._
+import cats._
 import MachineState._
 import interpreter.Trace._
 
@@ -210,49 +211,42 @@ object RhoInterface {
 
                 } yield ()
 
-              case Input(Action(x, z), k) =>
-                val abs = Abstraction(z, k)
-
+              case Input(acts, k) =>
                 for {
-                  st <- get[MachineState, List[MachineState]]
-
-                  _ <- tell(List(st))
-
-                  chanQ <- read(x)
-
-                  _ <- chanQ match {
-
-                    //* If there is a writer waiting, pull it off, and bind it's message to z in k.*/
-                    case WriterQueue(writer: Concretion, writers) =>
+                  interleaving <- fromList[MachineState,List[MachineState],List[Action]](
+                    acts.permutations.toList)
+                  _ <- Foldable[List].traverse_[Trace[MachineState,List[MachineState],?],Action,Unit](interleaving){
+                    case Action(x,z) =>
+                      val abs = Abstraction(z, k)
                       for {
-                        _ <- write(x)(writerQueue(writers))
-
-                        _ <- putRunQueue(bind(writer.q)(z)(k) :: xs)
-
+                        st <- get[MachineState, List[MachineState]]
+                        _ <- tell(List(st))
+                        chanQ <- read(x)
+                        _ <- chanQ match {
+                          //* If there is a writer waiting, pull it off, and bind it's message to z in k.*/
+                          case WriterQueue(writer: Concretion, writers) =>
+                            for {
+                              _ <- write(x)(writerQueue(writers))
+                              _ <- putRunQueue(bind(writer.q)(z)(k) :: xs)
+                            } yield ()
+                          //* If there is a reader waiting, create a reader, Abstraction(z,k), and add to the end of queue.*/
+                          case ReaderQueue(reader, readers) =>
+                            for {
+                              _ <- write(x)(readerQueue((reader :: readers) :+ abs))
+                              _ <- putRunQueue(xs)
+                            } yield ()
+                          //* If queue is empty, create a ReaderQueue, and add reader to it.*/
+                          case EmptyQueue =>
+                            for {
+                              _ <- write(x)(readerQueue(List(abs)))
+                              newStore <- getStore
+                              _ <- set[MachineState, List[MachineState]](
+                                MachineState(newStore, xs))
+                            } yield ()
+                        }
                       } yield ()
-
-                    //* If there is a reader waiting, create a reader, Abstraction(z,k), and add to the end of queue.*/
-                    case ReaderQueue(reader, readers) =>
-                      for {
-                        _ <- write(x)(readerQueue((reader :: readers) :+ abs))
-
-                        _ <- putRunQueue(xs)
-
-                      } yield ()
-
-                    //* If queue is empty, create a ReaderQueue, and add reader to it.*/
-                    case EmptyQueue =>
-                      for {
-                        _ <- write(x)(readerQueue(List(abs)))
-
-                        newStore <- getStore
-
-                        _ <- set[MachineState, List[MachineState]](
-                          MachineState(newStore, xs))
-
-                      } yield ()
-                  }
-                } yield ()
+                    }
+              } yield ()
 
               case Output(x, q) =>
                 val atQ = Quote(q)

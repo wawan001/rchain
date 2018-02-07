@@ -30,8 +30,8 @@ final case class Output(x: Quote, q: Proc) extends Proc {
 }
 
 //* for : N x N x P => P */
-final case class Input(a: Action, k: Proc) extends Proc {
-  override def toString: String = a.toString + "{ " + k.toString + " }"
+final case class Input(as: List[Action], k: Proc) extends Proc {
+  override def toString: String = as.mkString("for (",";",")") + "{ " + k.toString + " }"
 }
 
 //* | : P x P => P */
@@ -63,8 +63,8 @@ object Proc {
 
   def output(nsubj: Quote, cont: Proc): Output = Output(nsubj, cont)
 
-  def input(nsubj: Quote, nobj: Quote, cont: Proc): Input =
-    Input(Action(nsubj, nobj), cont)
+  def input(joined: List[(Quote,Quote)], cont: Proc): Input =
+    Input(joined.map{case (nsubj,nobj) => Action(nsubj, nobj)}, cont)
 
   def par(proc1: Proc, proc2: Proc): Par = {
     (proc1, proc2) match {
@@ -85,19 +85,16 @@ object Proc {
 
   def drop(n: Quote): Drop = Drop(n)
 
-  def prefix(act: Action, cont: Proc): Input = {
-    act match {
-      case Action(Quote(proc1), Quote(proc2)) =>
-        input(Quote(proc1), Quote(proc2), cont)
-    }
-  }
+  def prefix(acts: List[Action], cont: Proc): Input = Input(acts, cont)
 
   //* Given a unique process, generate a unique name */
   def calcNextName: Proc => Quote = {
     case Zero           => Quote(Zero)
     case Drop(Quote(p)) => Quote(par(p, p))
-    case Input(Action(Quote(psubj), Quote(pobj)), cont) =>
-      Quote(parstar(List(psubj, pobj, cont)))
+    case Input(actions, cont) =>
+      Quote(parstar(actions.map {
+        case Action(Quote(psubj),Quote(pobj)) => parstar(List(psubj, pobj, cont))
+      }))
     case Output(Quote(psubj), cont) => Quote(par(psubj, cont))
     case Par(Nil)                   => Quote(Zero)
     case Par(head :: tail) =>
@@ -118,27 +115,27 @@ object Proc {
             else n
           )
 
-        case Input(Action(nsubj, nobj), cont) =>
-          val obj: Quote = {
-            if (nameEquiv(nobj, ntarget))
-              calcNextName(Input(Action(nsubj, nobj), cont))
-            else nobj
-          }
+        // case Input(Action(nsubj, nobj), cont) =>
+        //   val obj: Quote = {
+        //     if (nameEquiv(nobj, ntarget))
+        //       calcNextName(Input(Action(nsubj, nobj), cont))
+        //     else nobj
+        //   }
 
-          val subj: Quote = {
-            if (nameEquiv(nsubj, ntarget)) nsource
-            else nsubj
-          }
+        //   val subj: Quote = {
+        //     if (nameEquiv(nsubj, ntarget)) nsource
+        //     else nsubj
+        //   }
 
-          val cont_ : Proc = {
-            syntacticSubstitution(
-              if (nameEquiv(nobj, ntarget))
-                syntacticSubstitution(cont)(obj)(nobj)
-              else cont
-            )(nsource)(ntarget)
-          }
+        //   val cont_ : Proc = {
+        //     syntacticSubstitution(
+        //       if (nameEquiv(nobj, ntarget))
+        //         syntacticSubstitution(cont)(obj)(nobj)
+        //       else cont
+        //     )(nsource)(ntarget)
+        //   }
 
-          Input(Action(subj, obj), cont_)
+        //   Input(Action(subj, obj), cont_)
 
         case Output(nsubj, cont) =>
           val subj: Quote = {
@@ -153,15 +150,15 @@ object Proc {
       }
   }
 
-  def alphaEquiv: Proc => Proc => Boolean = { proc1 => proc2 =>
-    (proc1, proc2) match {
-      case (Input(Action(nsubj1, nobj1), cont1),
-            Input(Action(nsubj2, nobj2), cont2)) =>
-        nameEquiv(nsubj1, nsubj2) && (cont1 == syntacticSubstitution(cont2)(
-          nobj1)(nobj2))
-      case (p1, p2) => p1 == p2
-    }
-  }
+  // def alphaEquiv: Proc => Proc => Boolean = { proc1 => proc2 =>
+  //   (proc1, proc2) match {
+  //     case (Input(Action(nsubj1, nobj1), cont1),
+  //           Input(Action(nsubj2, nobj2), cont2)) =>
+  //       nameEquiv(nsubj1, nsubj2) && (cont1 == syntacticSubstitution(cont2)(
+  //         nobj1)(nobj2))
+  //     case (p1, p2) => p1 == p2
+  //   }
+  // }
 
   /* 
     Differs from syntacticSubstitution because Drop(Quote(n))
@@ -181,27 +178,27 @@ object Proc {
             }
           } else Drop(n)
 
-        case Input(Action(nsubj, nobj), cont) =>
-          val obj: Quote = {
-            if (nameEquiv(nobj, ntarget))
-              calcNextName(Input(Action(nsubj, nobj), cont))
-            else nobj
-          }
+        // case Input(Action(nsubj, nobj), cont) =>
+        //   val obj: Quote = {
+        //     if (nameEquiv(nobj, ntarget))
+        //       calcNextName(Input(Action(nsubj, nobj), cont))
+        //     else nobj
+        //   }
 
-          val subj: Quote = {
-            if (nameEquiv(nsubj, ntarget)) nsource
-            else nsubj
-          }
+        //   val subj: Quote = {
+        //     if (nameEquiv(nsubj, ntarget)) nsource
+        //     else nsubj
+        //   }
 
-          val cont_ : Proc = {
-            syntacticSubstitution(
-              if (nameEquiv(nobj, ntarget))
-                semanticSubstitution(cont)(obj)(nobj)
-              else cont
-            )(nsource)(ntarget)
-          }
+        //   val cont_ : Proc = {
+        //     syntacticSubstitution(
+        //       if (nameEquiv(nobj, ntarget))
+        //         semanticSubstitution(cont)(obj)(nobj)
+        //       else cont
+        //     )(nsource)(ntarget)
+        //   }
 
-          Input(Action(subj, obj), cont_)
+        //   Input(Action(subj, obj), cont_)
 
         case Output(nsubj, cont) =>
           val subj: Quote = {
@@ -231,11 +228,19 @@ object Proc {
       case (Par(head :: tail), Zero) =>
         structurallyEquivalent(Zero, Par(head :: tail))
 
-      case (Input(Action(nsubj1, nobj1), cont1),
-            Input(Action(nsubj2, nobj2), cont2)) =>
-        nameEquiv(nsubj1, nsubj2) &&
-          structurallyEquivalent(cont1,
-                                 syntacticSubstitution(cont2)(nobj1)(nobj2))
+      case (Input(actions1, cont1),
+            Input(actions2, cont2)) =>
+        actionsEquiv(actions1, actions2) match {
+          case None => false
+          case Some(subs) =>
+            val contSub = subs.foldLeft(cont2){
+              case (cont,(nobj1,nobj2)) => syntacticSubstitution(cont)(nobj1)(nobj2)
+            }
+            structurallyEquivalent(cont1, contSub)
+        }
+        // nameEquiv(nsubj1, nsubj2) &&
+        //   structurallyEquivalent(cont1,
+        //                          syntacticSubstitution(cont2)(nobj1)(nobj2))
 
       case (Par(head :: tail), Par(xs)) =>
         xs.partition(proc => structurallyEquivalent(head, proc)) match {
@@ -284,12 +289,54 @@ object Proc {
     }
   }
 
+  def actionEquiv(act1: Action, act2: Action): Option[(Quote,Quote)] = {
+    (act1,act2) match {
+      case (Action(nsubj1, nobj1), Action(nsubj2, nobj2)) =>
+        if (nameEquiv(nsubj1, nsubj2)) Some((nobj1,nobj2)) else None
+    }
+  }
+
+  def actionsEquiv(acts1: List[Action], acts2: List[Action]):
+    Option[List[(Quote,Quote)]] = {
+      (acts1,acts2) match {
+        case (Nil,Nil) => Some(Nil)
+        case (Nil,_) => None
+        case (_,Nil) => None
+        case (head :: tail, acts) => acts.partition(
+          act => !(actionEquiv(head, act).isEmpty)) match {
+            case (Nil, tl) => None
+            case (eqhd, eqtl) =>
+              val init = (false, List[(Quote,Quote)](), List[Action](), eqhd.tail)
+              eqhd
+                .foldLeft(init) { (rejects, proc) =>
+                  rejects match {
+                    case (false, subs, r, l) =>
+                      actionsEquiv(r ++ l ++ eqtl, tail) match {
+                        case Some(sub) => (true,sub++subs,r,l)
+                        case None => l match {
+                          case Nil      => (false, subs, r ++ List(proc), Nil)
+                          case x :: xs1 => (false, subs, r ++ List(proc), xs1)
+                        }
+                      }
+                    case tuple => tuple
+                  }
+                } match {
+                  case (false,_,_,_) => None
+                  case (true,subs,_,_) => Some(subs)
+                }
+          }
+      }
+    }
+
   //* Collect the free names of a process into a set */
   def free(proc: Proc): Set[Quote] = {
     proc match {
       case Zero                             => Set.empty[Quote]
       case Drop(n)                          => Set(n)
-      case Input(Action(nsubj, nobj), cont) => free(cont) - nobj + nsubj
+      case Input(actions, cont)             =>
+        val nsubjs = actions.map{case Action(nsubj,nobj) => nsubj}
+        val nobjs = actions.map{case Action(nsubj,nobj) => nobj}
+        free(cont) -- nobjs ++ nsubjs
       case Output(nsubj, cont)              => free(cont) + nsubj
       case Par(xs) =>
         xs.foldLeft(Set.empty[Quote]) { (acc, proc) =>
@@ -308,10 +355,10 @@ object Proc {
     proc match {
       case Zero    => 0
       case Drop(n) => nameQuoteDepth(n)
-      case Input(Action(nsubj, nobj), k) =>
-        val qDSubj = nameQuoteDepth(nsubj)
-        val qDCont = procQuoteDepth(k)
-        math.max(qDSubj, qDCont)
+      // case Input(Action(nsubj, nobj), k) =>
+      //   val qDSubj = nameQuoteDepth(nsubj)
+      //   val qDCont = procQuoteDepth(k)
+      //   math.max(qDSubj, qDCont)
       case Output(nsubj, k) =>
         val qDSubj = nameQuoteDepth(nsubj)
         val qDCont = procQuoteDepth(k)
@@ -334,28 +381,28 @@ object Proc {
           case Par(prox) =>
             (None, procList) //* This could be extended pt-wise ... */
 
-          case Input(Action(insubj, inobj), iproc) => //* Find a Lift( ... ) with matching subject */
-            val ans: (List[Proc], List[Proc]) =
-              procList.partition {
-                case Output(onsubj, oproc) => nameEquiv(insubj, onsubj)
-                case _                     => false
-              }
-            ans match {
-              case (List(), _)          => (None, procList)
-              case (mProc :: mrProc, procs) => (Some(mProc), mrProc ++ procs)
-            }
+          // case Input(Action(insubj, inobj), iproc) => //* Find a Lift( ... ) with matching subject */
+          //   val ans: (List[Proc], List[Proc]) =
+          //     procList.partition {
+          //       case Output(onsubj, oproc) => nameEquiv(insubj, onsubj)
+          //       case _                     => false
+          //     }
+          //   ans match {
+          //     case (List(), _)          => (None, procList)
+          //     case (mProc :: mrProc, procs) => (Some(mProc), mrProc ++ procs)
+          //   }
 
-          case Output(onsubj, oproc) => //* Find an Input( ... ) with matching subject */
-            val ans: (List[Proc], List[Proc]) =
-              procList.partition {
-                case Input(Action(insubj, inobj), iproc) =>
-                  nameEquiv(insubj, onsubj)
-                case _ => false
-              }
-            ans match {
-              case (List(), _)          => (None, procList)
-              case (mProc :: mrProc, procs) => (Some(mProc), mrProc ++ procs)
-            }
+          // case Output(onsubj, oproc) => //* Find an Input( ... ) with matching subject */
+          //   val ans: (List[Proc], List[Proc]) =
+          //     procList.partition {
+          //       case Input(Action(insubj, inobj), iproc) =>
+          //         nameEquiv(insubj, onsubj)
+          //       case _ => false
+          //     }
+          //   ans match {
+          //     case (List(), _)          => (None, procList)
+          //     case (mProc :: mrProc, procs) => (Some(mProc), mrProc ++ procs)
+          //   }
         }
     }
 
@@ -382,24 +429,24 @@ object Proc {
       case Par(Drop(nsubj) :: rProc) => //* mix */
         normalizeOnce(Par(rProc ++ List(Drop(nsubj))))
 
-      case Par(Input(Action(insubj, inobj), iproc) :: rProc) =>
-        val mProc: (Option[Proc], List[Proc]) =
-          matchIO(Input(Action(insubj, inobj), iproc), rProc)
-        mProc match {
-          case (None, nrProc) => //* mix */
-            val mix = normalizeOnce(Par(rProc))
-            mix match {
-              case (b, Par(prox)) =>
-                (b, Par(Input(Action(insubj, inobj), iproc) :: prox))
-              case (b, redproc) =>
-                sys.error(s"Invalid reduction result: $redproc") 
-            }
-          case (Some(Output(onsubj, oproc)), nrProc) => //* comm */
-            val inputK = semanticSubstitution(iproc)(Quote(oproc))(inobj)
-            (true, Par(nrProc ++ List(inputK)))
-          case (Some(badMProc), rmproc) =>
-            sys.error(s"Invalid reduction result: $badMProc") 
-        }
+      // case Par(Input(Action(insubj, inobj), iproc) :: rProc) =>
+      //   val mProc: (Option[Proc], List[Proc]) =
+      //     matchIO(Input(Action(insubj, inobj), iproc), rProc)
+      //   mProc match {
+      //     case (None, nrProc) => //* mix */
+      //       val mix = normalizeOnce(Par(rProc))
+      //       mix match {
+      //         case (b, Par(prox)) =>
+      //           (b, Par(Input(Action(insubj, inobj), iproc) :: prox))
+      //         case (b, redproc) =>
+      //           sys.error(s"Invalid reduction result: $redproc") 
+      //       }
+      //     case (Some(Output(onsubj, oproc)), nrProc) => //* comm */
+      //       val inputK = semanticSubstitution(iproc)(Quote(oproc))(inobj)
+      //       (true, Par(nrProc ++ List(inputK)))
+      //     case (Some(badMProc), rmproc) =>
+      //       sys.error(s"Invalid reduction result: $badMProc") 
+      //   }
       case Par(Output(onsubj, oproc) :: rProc) =>
         val mProc: (Option[Proc], List[Proc]) =
           matchIO(Output(onsubj, oproc), rProc)
@@ -412,9 +459,9 @@ object Proc {
               case (b, redproc) =>
                 sys.error(s"Invalid reduction result: $redproc")
             }
-          case (Some(Input(Action(insubj, inobj), iproc)), nrProc) => //* comm */
-            val inputK = semanticSubstitution(iproc)(Quote(oproc))(inobj)
-            (true, Par(nrProc ++ List(inputK)))
+          // case (Some(Input(Action(insubj, inobj), iproc)), nrProc) => //* comm */
+          //   val inputK = semanticSubstitution(iproc)(Quote(oproc))(inobj)
+          //   (true, Par(nrProc ++ List(inputK)))
           case (Some(badMProc), rmproc) =>
             sys.error(s"Invalid match result: $badMProc")
         }
