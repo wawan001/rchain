@@ -1,10 +1,9 @@
 # A Rholang tutorial
+Rholang adalah bahasa pemrograman yang dirancang untuk digunakan pada sistem terdistribusi. Seperti semua hal yang baru lahir, berkembang dan berubah dengan cepat; dokumen ini menjelaskan sintaks yang akan digunakan dalam 0.1 rilis SDK.
 
-Rholang is a new programming language designed for use in distributed systems.  Like all newborn things, it is growing and changing rapidly; this document describes the syntax that will be used in the 0.1 SDK release.
+Rholang adalah "proses-berorientasi": semua perhitungan dilakukan dengan cara message passing. Pesan yang disampaikan pada "saluran", yang lebih suka pesan antrian tapi berperilaku seperti set daripada antrian. Rholang adalah benar-benar asynchronous, dalam arti bahwa sementara anda bisa membaca pesan dari saluran dan kemudian melakukan sesuatu dengan itu, anda tidak dapat mengirim pesan dan kemudian melakukan sesuatu setelah itu telah diterima---setidaknya, tidak secara eksplisit tanpa menunggu pengakuan pesan dari penerima.
 
-Rholang is "process-oriented": all computation is done by means of message passing.  Messages are passed on "channels", which are rather like message queues but behave like sets rather than queues.  Rholang is completely asynchronous, in the sense that while you can read a message from a channel and then do something with it, you can't send a message and then do something once it has been received---at least, not without explicitly waiting for an acknowledgement message from the receiver.
-
-## Contracts and sending data
+## Kontrak dan pengiriman data
 
     1 new helloWorld in {
     2   contract helloWorld(name) = {
@@ -13,15 +12,15 @@ Rholang is "process-oriented": all computation is done by means of message passi
     5   helloWorld("Joe")
     6 }
 
-1) A Rholang program is a single process.  This process starts by creating a new channel named `helloWorld`.  To create a new, private channel, we use the `new ... in` construction. No other process can send or receive messages over this channel unless we explicitly send this channel to the other process.
+1) Rholang program adalah suatu proses tunggal. Proses ini dimulai dengan membuat saluran baru bernama `helloWorld`. Untuk membuat yang baru, private channel, kami menggunakan `baru ... di` konstruksi. Tidak ada proses lain dapat mengirim atau menerima pesan melalui saluran ini kecuali kita secara eksplisit mengirim saluran ini untuk lain 1) Rholang program adalah suatu proses tunggal. Proses ini dimulai dengan membuat saluran baru bernama `helloWorld`. Untuk membuat yang baru, private channel, kami menggunakan `baru ... di` konstruksi. Tidak ada proses lain dapat mengirim atau menerima pesan melalui saluran ini kecuali kita secara eksplisit mengirim saluran ini ke proses lainnya.proses.
 
-2) The `contract` production creates a process that spawns a copy of its body whenever it receives a message.
+2) `kontrak` produksi menciptakan suatu proses yang menumbuhkan copy dari tubuh setiap kali menerima pesan.
 
-3) The `display` method of a string writes to standard out.  It takes a list of strings to print next. Therefore, for this to work, the message `name` should be a string.
+3) `display` metode string menulis standar. Dibutuhkan daftar string untuk mencetak berikutnya. Oleh karena itu, untuk ini untuk bekerja, pesan `nama` harus berupa string.
 
-5) We send the string `"Joe"` over the channel `helloWorld`.
+5) Kami mengirim string `"Joe"` channel `helloWorld`.
 
-## Receiving data
+## Menerima data
 
      1 new helloAgain in {
      2   contract helloAgain(_) = {
@@ -35,13 +34,13 @@ Rholang is "process-oriented": all computation is done by means of message passi
     10   helloAgain(Nil)
     11 }
 
-2) Contracts take at least one parameter, but we can throw it away by binding it to a variable we never use.
+2) Kontrak mengambil setidaknya satu parameter, tapi kita bisa membuangnya dengan mengikat untuk variabel kita tidak pernah menggunakan
 
 3) We create a new channel `chan`.
 
 4) We send the string process `"Hello again, world!"` over the new channel.
 
-5) We listen on the new channel for a single message.  The `for` operation blocks until there's a message available on the channel `chan`. The `for` operation is just like a contract except that it only reads one message and then becomes its body instead of forking a copy of its body for each message.
+5) Kita mendengarkan pada saluran baru untuk satu pesan. `Untuk` operasi blok sampai ada pesan yang tersedia pada saluran `chan`. `Untuk` operasi seperti kontrak, kecuali bahwa itu hanya membaca satu pesan dan kemudian menjadi tubuh bukan king copy dari tubuh untuk setiap pesan.
 
 ## Mutable state
 
@@ -83,7 +82,7 @@ Rholang is "process-oriented": all computation is done by means of message passi
     36   }
     37 }
 
-1) We create a new channel MakeCell and then use it on line 3 as the name of an internal contract.  No process other than the code inside this lexical scope can invoke it.
+1) Kami membuat saluran baru MakeCell dan kemudian menggunakannya pada line 3 sebagai nama dari internal kontrak. Tidak ada proses lain dari kode ini dalam leksikal lingkup dapat memanggil itu.
 
 3) The `MakeCell` contract takes three arguments.  The first argument is the initial value to be stored in the cell.  The second and third arguments are channels over which the cell will receive requests to get and set the value.
 
@@ -218,7 +217,7 @@ In the code below, `iterate` first sends a channel `next` over `iterator`, and t
     53     }
     54 }
 
-2) One design pattern, used in the MakeCell contract above, is to receive from the caller a channel for each different piece of functionality that a process provides.  An object-oriented programmer might say that MakeCell requires the caller to provide a channel for each method.  Matches are attempted in the order they appear in the code; if no match occurs, the `match` block evaluates to the `Nil` process.  MakeCoatCheck uses a more object-oriented approach, as we'll see.
+2) salah Satu pola desain, digunakan dalam MakeCell kontrak di atas, adalah untuk menerima dari pemanggil saluran untuk masing-masing bagian yang berbeda dari fungsi yang proses menyediakan. Berorientasi objek programmer mungkin mengatakan bahwa MakeCell memerlukan pemanggil untuk menyediakan saluran untuk masing-masing metode. Pertandingan yang berusaha dalam urutan mereka muncul dalam kode; jika tidak ada pertandingan yang terjadi, `setara` block mengevaluasi untuk `Nihil` proses. MakeCoatCheck menggunakan pendekatan yang lebih berorientasi obyek, seperti yang akan kita lihat.
 
 3-4) Each coat check has its own mutable reentrant map in which to store items.  We store the newly constructed map on mapStore.  It has the following API:
 
@@ -246,7 +245,7 @@ In the code below, `iterate` first sends a channel `next` over `iterator`, and t
     13     } }
     14 }
 
-The dining philosophers problem has two philosophers that share only one set of silverware.  Philosopher1 sits on the east side of the table while Philosopher2 sits on the west. Each needs both a knife and a fork in order to eat.  Each one refuses to relinquish a utensil until he has used both to take a bite.  If both philosophers reach first for the utensil at their right, both will starve: Philosopher1 gets the knife, Philosopher2 gets the fork, and neither ever lets go.
+Makan filsuf masalah memiliki dua filsuf yang berbagi hanya satu set dari perak. Philosopher1 duduk di sisi timur dari meja sementara Philosopher2 duduk di barat. Masing-masing membutuhkan investasi pisau dan garpu untuk makan. Masing-masing menolak untuk melepaskan alat sampai ia telah digunakan baik untuk mengambil menggigit. Jika kedua filsuf mencapai pertama untuk perkakas di kanan mereka, keduanya akan kelaparan: Philosopher1 mendapat pisau, Philosopher2 mendapat garpu, dan tidak pernah membiarkan pergi.
 
 Here's how to solve the problem:
 
@@ -275,7 +274,7 @@ In this section we describe several design patterns.  These patterns are adapted
 
 In the MakeCell contract, the client provides two channels, one for getting the value and one for setting it.  If the client then passes only the `get` channel to another process, that process effectively has a read-only view of the cell.  
 
-Channels like `get` and `set` are called "facets" of the process.  They encapsulate the authority to perform the action.  If the `set` channel is a public channel like `@"Foo"`, then anyone who can learn or even guess the string `"Foo"` has the authority to set the cell's value.  On the other hand, if the `set` channel was created with the `new` operator, then there's no way for any other process to construct the `set` channel; it must be passed to a process directly in order for the process to use it.  
+Saluran seperti `mendapatkan` dan `set` yang disebut "sisi" dari proses. Mereka merangkum kewenangan untuk melakukan tindakan. Jika `set` channel adalah saluran umum seperti `@"Foo"`, maka siapapun yang dapat belajar atau bahkan menebak string `"Foo"` memiliki kewenangan untuk mengatur nilai sel. Di sisi lain, jika `set` channel diciptakan dengan operator `new`, maka tidak ada jalan bagi proses lain untuk membangun `set` channel; itu harus dilalui dengan proses yang langsung dalam rangka untuk proses untuk menggunakannya.  
 
 Note that if `get` and `set` are not created as halves of iopairs, then possession of those channels is also authority to intercept messages sent to the cell:
 
@@ -285,11 +284,11 @@ Note that if `get` and `set` are not created as halves of iopairs, then possessi
 
 This term has two processes listening on the channel `get` and a single message sent over `get`.  Only one of the two processes will be able to receive the message.
 
-By receiving channels from the client for getting and setting, the MakeCell contract is leaving the decisions about how public those channels are to the client.  The MakeCellFactory contract, on the other hand, constructs its own channels and returns them to the client, so it is in a position to enforce privacy guarantees.
+Dengan menerima saluran dari klien untuk mendapatkan dan pengaturan, MakeCell kontrak meninggalkan keputusan tentang bagaimana publik mereka kepada klien. Yang MakeCellFactory kontrak, di sisi lain, konstruksi saluran sendiri dan mengembalikan mereka ke klien, sehingga dalam posisi untuk menerapkan privasi jaminan.
 
 ### Attenuating forwarders
 
-In the MakeCellFactory contract, there's only one channel and messages are dispatched internally.  To get the same effect as a read-only facet, we can create a forwarder process that simply ignores any messages it doesn't want to forward.  The contract below only forwards the "get" method.
+Di MakeCellFactory kontrak, hanya ada satu saluran dan pesan yang dikirim secara internal. Untuk mendapatkan efek yang sama sebagai read-only segi, kita dapat membuat sebuah forwarder proses yang hanya mengabaikan setiap pesan yang tidak ingin maju. Kontrak di bawah ini hanya meneruskan "mendapatkan" metode.
 
     contract MakeGetForwarder(target, ret) = {
         new port in {
@@ -363,7 +362,7 @@ A logging forwarder can record all messages sent on a channel by echoing them to
 
 ### Accountability
 
-Suppose Alice has a channel and would like to log Bob's access to it.  Bob would like to delegate the use of that channel to Carol and log her access.  Each party is free to construct their own logging forwarder around the channel they have received.  Alice will hold Bob responsible for whatever Carol does.
+Misalkan Alice memiliki saluran dan ingin log Bob akses untuk itu. Bob ingin mendelegasikan penggunaan saluran untuk Carol dan log akses nya. Masing-masing pihak adalah gratis untuk membangun mereka sendiri penebangan forwarder di seluruh channel yang telah mereka terima. Alice akan mengadakan Bob bertanggung jawab untuk apa pun Carol tidak.
 
 ### Sealing and unsealing
 
@@ -383,20 +382,20 @@ Suppose Alice has a channel and would like to log Bob's access to it.  Bob would
     }
 
 
-A sealer/unsealer pair gives the same functionality as public keys, but without cryptography. It's merely an attenuation of the coat check described above.  This design pattern can be used to sign something on a user's behalf.  In the Rholang blockchain tutorial, we'll see that it even works on the blockchain because there are no secrets to store, only unforgeable names to be kept inaccessible.
+Sealer/unsealer pasangan memberikan fungsi yang sama dengan kunci publik, tetapi tanpa kriptografi. Itu hanya redaman cek mantel yang dijelaskan di atas. Pola desain ini dapat digunakan untuk menandatangani sesuatu pada nama pengguna. Di Rholang blockchain tutorial ini, kita akan melihat bahwa bahkan bekerja di blockchain karena tidak ada rahasia untuk toko, hanya unforgeable nama-nama yang akan tetap tidak dapat diakses.
 
-### Beware of sending attenuators
+### Waspadalah terhadap mengirim attenuators
 
-A basic principle to keep in mind with RChain processes is one that is similar to more traditional web applications: whatever code you send to another party can be disassembled.  Ever since the late 1990s when buying things over the web became possible, [there have been e-commerce platforms](https://blog.detectify.com/2016/11/17/7-most-common-e-commerce-security-mistakes/) where the platform relied on the users' browsers to send the correct price of the item back to it.  The authors didn't think about the user opening the developer tools and changing the price before it got sent back.  The right way to build an e-commerce platform is to store the prices on the server and check them there.
+Prinsip dasar yang perlu diingat dengan RChain proses adalah salah satu yang mirip dengan yang lebih tradisional aplikasi web: apapun kode yang anda kirim ke pihak lain dapat dibongkar. Sejak akhir 1990-an ketika membeli barang melalui web menjadi mungkin, [ada platform e-commerce](https://blog.detectify.com/2016/11/17/7-most-common-e-commerce-security-mistakes/) di mana platform mengandalkan browser pengguna untuk mengirim benar harga barang kembali untuk itu. Penulis tidak berpikir tentang pengguna membuka alat pengembang dan perubahan harga sebelum itu harus dikirim kembali. Cara yang tepat untuk membangun platform e-commerce untuk toko harga pada server dan memeriksa mereka di sana.
 
-Suppose that Bob is willing to run some code for Alice; he has a contract that says something like, "Get a process from this channel and run it."
+Misalkan Bob bersedia untuk menjalankan beberapa kode untuk Alice, dia memiliki kontrak yang mengatakan sesuatu seperti, "Dapatkan proses dari channel ini dan menjalankannya."
 
     for (p <- x) { *p }
 
-This is just like a web browser being willing to run the JavaScript code it gets from a website.  If Alice sends Bob an attenuating forwarder, Bob can use the pattern matching productions in Rholang to take apart the process and get access to the underlying resource.  Instead, like in the e-commerce example, Alice should only send code that forwards requests to her own processes and do the attenuation there.
+Ini adalah seperti sebuah web browser yang bersedia untuk menjalankan kode JavaScript itu mendapat dari sebuah situs web. Jika Alice mengirimkan Bob pelemahan forwarder, Bob dapat menggunakan pencocokan pola produksi dalam Rholang untuk mengambil terpisah proses dan mendapatkan akses ke sumber daya yang mendasari. Sebaliknya, seperti di e-commerce contoh, Alice hanya harus mengirim kode yang meneruskan permintaan untuk dirinya sendiri proses dan melakukan redaman yang ada.
 
-## Conclusion
+## Kesimpulan
 
-RChain is a language designed for use on a blockchain, but we have not mentioned anything about nodes, namespaces, wallets, Rev and phlogiston, network structure, or Casper.  A forthcoming document will address all these issues and more.
+RChain adalah sebuah bahasa yang dirancang untuk digunakan di blockchain, namun kami tidak menyebutkan apa-apa tentang node, ruang nama, dompet, Rev dan phlogiston, struktur jaringan, atau Casper. Sebuah dokumen yang akan datang akan mengatasi semua masalah ini dan banyak lagi.
 
-We hope that the foregoing examples spark a desire to write more code and demonstrate the ease of expressing concurrent designs.
+Kami berharap bahwa contoh-contoh tersebut di atas memicu keinginan untuk menulis kode yang lebih dan menunjukkan kemudahan mengekspresikan serentak desain.
